@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calculator</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --card: #111a33;
+        --display: #0d142b;
+        --text: #e8eeff;
+        --muted: #a8b3d9;
+        --btn: #16224a;
+        --btn2: #1c2c5d;
+        --op: #2c5cff;
+        --danger: #ff3b5c;
+        --shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+        --radius: 18px;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: radial-gradient(1200px 800px at 20% 10%, #22306a 0%, transparent 55%),
+          radial-gradient(1000px 700px at 80% 80%, #2b1d5d 0%, transparent 60%),
+          var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+          "Segoe UI Emoji";
+      }
+
+      .calc {
+        width: min(420px, 100%);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        backdrop-filter: blur(8px);
+      }
+
+      .top {
+        padding: 18px 18px 10px;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .title {
+        font-size: 14px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .hint {
+        font-size: 12px;
+        color: rgba(232, 238, 255, 0.7);
+      }
+
+      .display {
+        background: var(--display);
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        padding: 16px 18px;
+      }
+
+      .expr {
+        min-height: 18px;
+        color: rgba(232, 238, 255, 0.65);
+        font-size: 13px;
+        text-align: right;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .result {
+        margin-top: 8px;
+        font-size: 34px;
+        line-height: 1.15;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .keys {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        padding: 18px;
+        background: rgba(17, 26, 51, 0.55);
+      }
+
+      button {
+        appearance: none;
+        border: 0;
+        border-radius: 14px;
+        padding: 14px 12px;
+        font-size: 18px;
+        color: var(--text);
+        background: linear-gradient(180deg, var(--btn2), var(--btn));
+        cursor: pointer;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+        transition: transform 0.06s ease, filter 0.12s ease;
+        user-select: none;
+      }
+
+      button:active { transform: translateY(1px) scale(0.99); filter: brightness(0.98); }
+      button:focus-visible { outline: 2px solid rgba(44, 92, 255, 0.6); outline-offset: 2px; }
+
+      .span-2 { grid-column: span 2; }
+      .op { background: linear-gradient(180deg, rgba(44, 92, 255, 0.95), rgba(44, 92, 255, 0.75)); }
+      .eq { background: linear-gradient(180deg, #35d07f, #1fb26a); }
+      .danger { background: linear-gradient(180deg, rgba(255, 59, 92, 0.95), rgba(255, 59, 92, 0.7)); }
+      .muted { color: rgba(232, 238, 255, 0.9); background: linear-gradient(180deg, #223063, #19234c); }
+
+      .footer {
+        padding: 0 18px 18px;
+        color: rgba(232, 238, 255, 0.55);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      kbd {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+          monospace;
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(0, 0, 0, 0.15);
+        color: rgba(232, 238, 255, 0.8);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="calc" aria-label="Calculator">
+      <div class="top">
+        <div class="title">Calculator</div>
+        <div class="hint">Keyboard: <kbd>0-9</kbd> <kbd>+</kbd> <kbd>-</kbd> <kbd>*</kbd> <kbd>/</kbd> <kbd>Enter</kbd> <kbd>Backspace</kbd> <kbd>Esc</kbd></div>
+      </div>
+
+      <section class="display" aria-live="polite">
+        <div class="expr" id="expr"></div>
+        <div class="result" id="result">0</div>
+      </section>
+
+      <section class="keys" aria-label="Calculator keys">
+        <button class="danger" data-action="clear" aria-label="Clear">C</button>
+        <button class="muted" data-action="backspace" aria-label="Backspace">⌫</button>
+        <button class="muted" data-action="percent" aria-label="Percent">%</button>
+        <button class="op" data-value="/" aria-label="Divide">÷</button>
+
+        <button data-value="7">7</button>
+        <button data-value="8">8</button>
+        <button data-value="9">9</button>
+        <button class="op" data-value="*" aria-label="Multiply">×</button>
+
+        <button data-value="4">4</button>
+        <button data-value="5">5</button>
+        <button data-value="6">6</button>
+        <button class="op" data-value="-" aria-label="Subtract">−</button>
+
+        <button data-value="1">1</button>
+        <button data-value="2">2</button>
+        <button data-value="3">3</button>
+        <button class="op" data-value="+" aria-label="Add">+</button>
+
+        <button class="muted" data-action="negate" aria-label="Toggle sign">±</button>
+        <button data-value="0">0</button>
+        <button data-value="." aria-label="Decimal">.</button>
+        <button class="eq" data-action="equals" aria-label="Equals">=</button>
+      </section>
+
+      <div class="footer">
+        Note: this is a simple calculator using safe expression evaluation (only digits, operators, and decimals).
+      </div>
+    </main>
+
+    <script>
+      (function () {
+        const exprEl = document.getElementById("expr");
+        const resultEl = document.getElementById("result");
+
+        let expr = "";       // full expression string
+        let justEvaluated = false;
+
+        const isOp = (ch) => ["+", "-", "*", "/"].includes(ch);
+        const isDigit = (ch) => ch >= "0" && ch <= "9";
+
+        function setDisplay() {
+          exprEl.textContent = expr;
+          resultEl.textContent = expr ? formatNumber(tryPreview(expr)) : "0";
+        }
+
+        function formatNumber(n) {
+          if (typeof n !== "number" || !Number.isFinite(n)) return "Error";
+          // Keep it readable; avoid scientific notation for common ranges
+          const abs = Math.abs(n);
+          if ((abs !== 0 && abs < 1e-9) || abs > 1e15) return n.toExponential(8).replace(/\.?0+e/, "e");
+          const s = n.toString();
+          // trim long floats
+          if (s.includes(".")) {
+            const [a, b] = s.split(".");
+            return a + "." + b.slice(0, 10).replace(/0+$/, "");
+          }
+          return s;
+        }
+
+        function sanitizeExpression(s) {
+          // Allow digits, operators, decimal points, parentheses, and spaces.
+          // (We don't provide parentheses via UI, but allowing them doesn't harm.)
+          return /^[0-9+\-*/().\s]+$/.test(s);
+        }
+
+        function safeEval(s) {
+          if (!s) return 0;
+          if (!sanitizeExpression(s)) return NaN;
+          // Disallow repeated operators like "**" or "//"
+          if (/[*/]{2,}/.test(s)) return NaN;
+          // Avoid expressions ending with an operator
+          if (isOp(s.trim().slice(-1))) return NaN;
+          // eslint-disable-next-line no-new-func
+          return Function('"use strict"; return (' + s + ")")();
+        }
+
+        function tryPreview(s) {
+          const v = safeEval(s);
+          return Number.isFinite(v) ? v : NaN;
+        }
+
+        function appendValue(v) {
+          if (justEvaluated && (isDigit(v) || v === ".")) {
+            // start a new expression if user types a number after equals
+            expr = "";
+          }
+          justEvaluated = false;
+
+          const t = expr.trimEnd();
+          const last = t.slice(-1);
+
+          if (v === ".") {
+            // prevent multiple dots in the current number token
+            const lastToken = t.split(/[\s+\-*/()]/).pop();
+            if (lastToken.includes(".")) return;
+            if (!lastToken) expr += "0";
+          }
+
+          if (isOp(v)) {
+            if (!t) return; // don't start with operator
+            if (isOp(last)) {
+              expr = t.slice(0, -1) + v; // replace operator
+            } else {
+              expr = t + " " + v + " ";
+            }
+          } else {
+            expr += v;
+          }
+
+          setDisplay();
+        }
+
+        function clearAll() {
+          expr = "";
+          justEvaluated = false;
+          setDisplay();
+        }
+
+        function backspace() {
+          justEvaluated = false;
+          if (!expr) return;
+          // Remove last char, then trim single trailing spaces.
+          expr = expr.slice(0, -1);
+          // If we removed into " + " spacing, clean it up
+          expr = expr.replace(/\s{2,}/g, " ");
+          setDisplay();
+        }
+
+        function equals() {
+          const v = safeEval(expr.replace(/\s+/g, " ").trim());
+          if (!Number.isFinite(v)) {
+            resultEl.textContent = "Error";
+            return;
+          }
+          exprEl.textContent = expr;
+          resultEl.textContent = formatNumber(v);
+          expr = formatNumber(v); // allow chaining operations
+          justEvaluated = true;
+        }
+
+        function percent() {
+          // Convert the last number token to percent (divide by 100)
+          justEvaluated = false;
+          const t = expr;
+          const m = t.match(/(-?\d+(\.\d+)?)(?!.*\d)/);
+          if (!m) return;
+          const num = parseFloat(m[1]);
+          const pct = num / 100;
+          expr = t.slice(0, m.index) + formatNumber(pct) + t.slice(m.index + m[1].length);
+          setDisplay();
+        }
+
+        function negate() {
+          // Toggle sign of last number token
+          justEvaluated = false;
+          const t = expr;
+          const m = t.match(/(-?\d+(\.\d+)?)(?!.*\d)/);
+          if (!m) return;
+          const num = parseFloat(m[1]);
+          const neg = -num;
+          expr = t.slice(0, m.index) + formatNumber(neg) + t.slice(m.index + m[1].length);
+          setDisplay();
+        }
+
+        document.querySelector(".keys").addEventListener("click", (e) => {
+          const btn = e.target.closest("button");
+          if (!btn) return;
+          const value = btn.getAttribute("data-value");
+          const action = btn.getAttribute("data-action");
+
+          if (value != null) appendValue(value);
+          else if (action === "clear") clearAll();
+          else if (action === "backspace") backspace();
+          else if (action === "equals") equals();
+          else if (action === "percent") percent();
+          else if (action === "negate") negate();
+        });
+
+        window.addEventListener("keydown", (e) => {
+          const k = e.key;
+          if (isDigit(k) || k === ".") {
+            appendValue(k);
+            e.preventDefault();
+            return;
+          }
+          if (k === "Enter" || k === "=") {
+            equals();
+            e.preventDefault();
+            return;
+          }
+          if (k === "Backspace") {
+            backspace();
+            e.preventDefault();
+            return;
+          }
+          if (k === "Escape") {
+            clearAll();
+            e.preventDefault();
+            return;
+          }
+          if (["+", "-", "*", "/"].includes(k)) {
+            appendValue(k);
+            e.preventDefault();
+            return;
+          }
+          if (k === "%") {
+            percent();
+            e.preventDefault();
+          }
+        });
+
+        setDisplay();
+      })();
+    </script>
+  </body>
+</html>
+
